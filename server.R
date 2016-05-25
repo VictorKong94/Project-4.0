@@ -73,9 +73,10 @@ shinyServer(function(input, output, session) {
   
   step2 = reactive({
     
-    housekeepingGene = input$housekeepingGene
-    foldChange = step1()$quantity / step1()$quantity[, housekeepingGene]
-    normalized = step1()$quantity * foldChange
+    hkGene = input$housekeepingGene
+    foldChange = step1()$quantity / step1()$quantity[, hkGene]
+    normalFactor = step1()$quantity[, hkGene] / mean(step1()$quantity[, hkGene])
+    normalized = step1()$quantity * normalFactor
     
     # Define list of useful processed data sets
     return(list("foldChange" = foldChange, "normalized" = normalized))
