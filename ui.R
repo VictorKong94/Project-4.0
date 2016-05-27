@@ -8,32 +8,46 @@ shinyUI(fluidPage(
             "tab when you're finished. Thanks!"),
       tags$hr(),
       
-      # Upload SDS Output File
+      # Upload -> SDS Output File
       fileInput("datafile", "Select SDS Output File", accept = ".txt"),
-      conditionalPanel(
-        condition = "output.fileUploaded",
-        radioButtons("housekeepingGene", "Select Housekeeping Gene",
-                    choices = "CLPTM")
-      ),
       
-      # Upload Optional qPCR Template File
       conditionalPanel(
         condition = "output.fileUploaded",
-        fileInput("template", "Select qPCR Template File (Optional)",
-                  accept = ".csv")
-      ),
-    
-      conditionalPanel(
-        condition = "output.fileUploaded",
+        
+        # Radio Buttons -> Select Housekeeping Gene
+        radioButtons("housekeepingGene", "Select Housekeeping Gene",
+                    choices = "CLPTM"),
+        
+        # Horizontal Bar Separator
         tags$hr(),
         
-        # Select Desired Output
+        # Header for Optional Section
+        tags$b("Optional (beta)"),
+        
+        # Upload -> qPCR Template File
+        checkboxInput("submitTemplate", "Submit qPCR Template File"),
+        conditionalPanel(
+          condition = "input.submitTemplate == true",
+          fileInput("template", NULL, accept = ".csv")
+        ),
+        
+        # Text Input -> Sort by Replicates
+        checkboxInput("sortByReplicates", "Enter String to Sort by Replicates"),
+        conditionalPanel(
+          condition = "input.sortByReplicates == true",
+          textInput("repIndicator", NULL)
+        ),
+        
+        # Horizontal Bar Separator
+        tags$hr(),
+        
+        # Select Menu -> Desired Output
         selectInput("outfile", "Select Data Output",
-                    choices = c("Fold Change", "Normalized", "Outliers",
-                                "Raw Quantities"),
+                    choices = c("Fold Change", "Normalized",
+                                "Outliers", "Raw Quantities"),
                     selected = "Raw Quantities"),
         
-        # Button to Download Processed Data
+        # Download Button -> Download Processed Data
         downloadButton("downloadData", "Download")
       )
       

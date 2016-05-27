@@ -12,21 +12,29 @@ shinyServer(function(input, output, session) {
     # Import plaintext output from SDS software
     infile = input$datafile$datapath
     rawData = readLines(infile)
-    xRows = grep("^Position", rawData) - 1
-    oCols = grep("Qty stddev", unlist(strsplit(rawData[xRows + 1], "\t")))
-    xCols = count.fields(infile, sep = "\t", skip = xRows)[1] - oCols
-    df = read.delim(infile, row.names = 1, stringsAsFactors = F, skip = xRows,
-                    colClasses = c(rep(NA, oCols), rep("NULL", xCols)))
+    skipRow = grep("^Position", rawData) - 1
+    colClass = rep("NULL", count.fields(infile, sep = "\t", skip = skipRow)[1])
+    colClass[unlist(strsplit(rawData[skipRow + 1], "\t")) %in%
+      c("Position", "Sample", "Detector", "Task", "Quantity")] = NA
+    df = read.delim(infile, row.names = 1, stringsAsFactors = F,
+                    skip = skipRow, colClasses = colClass)
+    
     
     # Replace sample names with data from pertinent qPCR template file
-    if (!is.null(input$template)) {
-      sampleNames = read.csv(input$template$datapath, header = F,
-                             stringsAsFactors = F)
-      df$Sample = rep(as.vector(t(sampleNames)), each = 3)
+    if (input$submitTemplate == T & !is.null(input$template)) {
+      sampleNames = matrix(NA, ncol = 8, nrow = 16)
+      template = read.csv(input$template$datapath, header = F, na.strings = "",
+                          stringsAsFactors = F)
+      I = as.matrix(expand.grid(as.numeric(rownames(template)),
+                                as.numeric(gsub("V", "", colnames(template)))))
+      sampleNames[I] = template[I]
+      sampleNames = rep(as.vector(t(sampleNames)), each = 3)
+      names(sampleNames) = paste0(rep(LETTERS[1:16], each = 24), 1:24)
+      df$Sample = sampleNames[rownames(df)]
     }
     
     # Clean imported data
-    df = df[df$Flag == "Passed" & !(df$Task %in% c("NTC", "Standard")),
+    df = df[!is.na(df$Quantity) & !(df$Task %in% c("NTC", "Standard")),
             names(df) %in% setdiff(names(df), c("Flag", "Task"))]
     df$Detector = factor(df$Detector)
     df$Sample = factor(df$Sample)
@@ -34,11 +42,12 @@ shinyServer(function(input, output, session) {
     # Identify and remove outliers. Observations with a Grubbs' Test Statistic
     # greater than or equal to 1.15 are determined to be outliers
     outlierScore = abs(df$Quantity - df$Qty.mean) / df$Qty.stddev
-    outliers = df[outlierScore >= 1.15,]
+    names(outlierScore) = rownames(df)
+    outliers = df[outlierScore >= 1.15 & !is.na(outlierScore),]
     df = df[setdiff(row.names(df), row.names(outliers)),]
     outliers = data.frame("Sample" = outliers$Sample,
                           "Detector" = outliers$Detector,
-                          "Outlier Score" = outlierScore[outlierScore >= 1.15])
+                          "Outlier Score" = outlierScore[rownames(outliers)])
     
     # Compute means of remaining observations
     means = data.frame("Target" = factor(levels = levels(df$Detector)),
@@ -52,18 +61,37 @@ shinyServer(function(input, output, session) {
       }
     }
     
-    # Organize processed data into matrix
-    quantity = matrix(as.numeric(means$Mean), nrow = nlevels(means$Sample),
-                      dimnames = list(levels(df$Sample), levels(df$Detector)))
-    
     # Extract names of target genes
-    genes = list()
-    for (gene in colnames(quantity)) {
-      genes[[gene]] = gene
+    genes = lapply(levels(df$Detector), sprintf)
+    
+    # Organize processed data into matrix
+    if (input$sortByReplicates == T & input$repIndicator != "") {
+      means$Sample = sapply(strsplit(levels(means$Sample),
+                                     trimws(casefold(input$repIndicator))),
+                            function(x) trimws(x[1]))
+      Txs = sapply(unique(means$Target),
+                   function(x) table(means$Sample[means$Target == x]))
+      reps = max(Txs)
+      qty = matrix(0, nrow = nrow(Txs), ncol = ncol(Txs) * reps,
+                   dimnames = list(rownames(Txs),
+                                   sapply(levels(means$Target), function(x)
+                                     c(x, rep("", reps - 1)))))
+      for (target in levels(means$Target)) {
+        for (Tx in rownames(Txs)) {
+          cols = seq(which(target == colnames(qty)),
+                     which(target == colnames(qty)) + reps - 1)
+          qty[Tx, cols] = as.numeric(means$Mean[means$Target == target &
+                                                  means$Sample == Tx])
+        }
+      }
+      qty[qty == 0] = NA
+    } else {
+      qty = matrix(as.numeric(means$Mean), nrow = nlevels(means$Sample),
+                   dimnames = list(levels(df$Sample), levels(df$Detector)))
     }
     
     # Define list of useful processed data sets
-    return(list("genes" = genes, "outliers" = outliers, "quantity" = quantity))
+    return(list("genes" = genes, "outliers" = outliers, "qty" = qty))
     
   })
   
@@ -74,9 +102,9 @@ shinyServer(function(input, output, session) {
   step2 = reactive({
     
     hkGene = input$housekeepingGene
-    foldChange = step1()$quantity / step1()$quantity[, hkGene]
-    normalFactor = step1()$quantity[, hkGene] / mean(step1()$quantity[, hkGene])
-    normalized = step1()$quantity * normalFactor
+    foldChange = step1()$qty / step1()$qty[, hkGene]
+    normalFactor = step1()$qty[, hkGene] / mean(step1()$qty[, hkGene])
+    normalized = step1()$qty * normalFactor
     
     # Define list of useful processed data sets
     return(list("foldChange" = foldChange, "normalized" = normalized))
@@ -93,7 +121,7 @@ shinyServer(function(input, output, session) {
            "Fold Change" = step2()$foldChange,
            "Normalized" = step2()$normalized,
            "Outliers" = step1()$outliers,
-           "Raw Quantities" = step1()$quantity)
+           "Raw Quantities" = step1()$qty)
   })
   
   output$downloadData = downloadHandler(
@@ -106,7 +134,7 @@ shinyServer(function(input, output, session) {
                        "Fold Change" = step2()$foldChange,
                        "Normalized" = step2()$normalized,
                        "Outliers" = step1()$outliers,
-                       "Raw Quantities" = step1()$quantity),
+                       "Raw Quantities" = step1()$qty),
                 con)
     }
   )
