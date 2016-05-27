@@ -15,7 +15,8 @@ shinyServer(function(input, output, session) {
     skipRow = grep("^Position", rawData) - 1
     colClass = rep("NULL", count.fields(infile, sep = "\t", skip = skipRow)[1])
     colClass[unlist(strsplit(rawData[skipRow + 1], "\t")) %in%
-      c("Position", "Sample", "Detector", "Task", "Quantity")] = NA
+      c("Position", "Sample", "Detector", "Task",
+        "Quantity", "Qty mean", "Qty stddev")] = NA
     df = read.delim(infile, row.names = 1, stringsAsFactors = F,
                     skip = skipRow, colClasses = colClass)
     
