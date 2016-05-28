@@ -19,7 +19,7 @@ shinyServer(function(input, output, session) {
         "Quantity", "Qty mean", "Qty stddev")] = NA
     df = read.delim(infile, row.names = 1, stringsAsFactors = F,
                     skip = skipRow, colClasses = colClass)
-    
+    df$X = NULL
     
     # Replace sample names with data from pertinent qPCR template file
     if (input$submitTemplate == T & !is.null(input$template)) {
@@ -36,7 +36,7 @@ shinyServer(function(input, output, session) {
     
     # Clean imported data
     df = df[!is.na(df$Quantity) & !(df$Task %in% c("NTC", "Standard")),
-            names(df) %in% setdiff(names(df), c("Flag", "Task"))]
+            names(df) %in% setdiff(names(df), "Task")]
     df$Detector = factor(df$Detector)
     df$Sample = factor(df$Sample)
     
@@ -68,7 +68,7 @@ shinyServer(function(input, output, session) {
     # Organize processed data into matrix
     if (input$sortByReplicates == T & input$repIndicator != "") {
       means$Sample = sapply(strsplit(levels(means$Sample),
-                                     trimws(casefold(input$repIndicator))),
+                                     trimws(input$repIndicator)),
                             function(x) trimws(x[1]))
       Txs = sapply(unique(means$Target),
                    function(x) table(means$Sample[means$Target == x]))
@@ -141,3 +141,4 @@ shinyServer(function(input, output, session) {
   )
   
 })
+
