@@ -43,8 +43,8 @@ shinyUI(fluidPage(
         
         # Select Menu -> Desired Output
         selectInput("outfile", "Select Data Output",
-                    choices = c("Fold Change", "Normalized",
-                                "Outliers", "Raw Quantities"),
+                    choices = c("Errors", "Fold Change", "Normalized",
+                                "Raw Quantities"),
                     selected = "Raw Quantities"),
         
         # Download Button -> Download Processed Data

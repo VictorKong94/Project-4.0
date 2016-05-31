@@ -10,22 +10,21 @@ shinyServer(function(input, output, session) {
     }
     
     # Import plaintext output from SDS software
+    options(stringsAsFactors = F)
     infile = input$datafile$datapath
     rawData = readLines(infile)
-    skipRow = grep("^Position", rawData) - 1
-    colClass = rep("NULL", count.fields(infile, sep = "\t", skip = skipRow)[1])
-    colClass[unlist(strsplit(rawData[skipRow + 1], "\t")) %in%
-      c("Position", "Sample", "Detector", "Task",
+    skip = grep("^Position", rawData) - 1
+    colClass = rep("NULL", count.fields(infile, sep = "\t", skip = skip)[1])
+    colClass[unlist(strsplit(rawData[skip + 1], "\t")) %in%
+      c("Position", "Flag", "Sample", "Detector", "Task", "Ct", "Ct.median",
         "Quantity", "Qty mean", "Qty stddev")] = NA
-    df = read.delim(infile, row.names = 1, stringsAsFactors = F,
-                    skip = skipRow, colClasses = colClass)
+    df = read.delim(infile, row.names = 1, skip = skip, colClasses = colClass)
     df$X = NULL
     
     # Replace sample names with data from pertinent qPCR template file
     if (input$submitTemplate == T & !is.null(input$template)) {
       sampleNames = matrix(NA, ncol = 8, nrow = 16)
-      template = read.csv(input$template$datapath, header = F, na.strings = "",
-                          stringsAsFactors = F)
+      template = read.csv(input$template$datapath, header = F, na.strings = "")
       I = as.matrix(expand.grid(as.numeric(rownames(template)),
                                 as.numeric(gsub("V", "", colnames(template)))))
       sampleNames[I] = template[I]
@@ -35,20 +34,24 @@ shinyServer(function(input, output, session) {
     }
     
     # Clean imported data
-    df = df[!is.na(df$Quantity) & !(df$Task %in% c("NTC", "Standard")),
+    df = df[!(df$Task %in% c("", "NTC", "Standard")),
             names(df) %in% setdiff(names(df), "Task")]
     df$Detector = factor(df$Detector)
     df$Sample = factor(df$Sample)
     
-    # Identify and remove outliers. Observations with a Grubbs' Test Statistic
-    # greater than or equal to 1.15 are determined to be outliers
-    outlierScore = abs(df$Quantity - df$Qty.mean) / df$Qty.stddev
-    names(outlierScore) = rownames(df)
-    outliers = df[outlierScore >= 1.15 & !is.na(outlierScore),]
-    df = df[setdiff(row.names(df), row.names(outliers)),]
-    outliers = data.frame("Sample" = outliers$Sample,
-                          "Detector" = outliers$Detector,
-                          "Outlier Score" = outlierScore[rownames(outliers)])
+    # Identify errors, including:
+    # - samples with Grubb's Outlier Score >= 1.15,
+    # - missing data,
+    # - samples flagged by SDS software
+    df$Outlier.score = abs(df$Quantity - df$Qty.mean) / df$Qty.stddev
+    errors = df[df$Flag != "Passed" | df$Outlier.score >= 1.15 |
+                  is.na(df$Quantity),]
+    df = df[setdiff(rownames(df), rownames(errors)),]
+    errors$Reason = paste("Grubb's Outlier Score =", errors$Outlier.score)
+    errors$Reason[errors$Flag == "Flagged"] = "Flagged by SDS"
+    errors$Reason[is.na(errors$Quantity)] = "Missing data"
+    errors$Flag = NULL
+    errors$Outlier.Score = NULL
     
     # Compute means of remaining observations
     means = data.frame("Target" = factor(levels = levels(df$Detector)),
@@ -92,7 +95,7 @@ shinyServer(function(input, output, session) {
     }
     
     # Define list of useful processed data sets
-    return(list("genes" = genes, "outliers" = outliers, "qty" = qty))
+    return(list("genes" = genes, "errors" = errors, "qty" = qty))
     
   })
   
@@ -121,7 +124,7 @@ shinyServer(function(input, output, session) {
     switch(input$outfile,
            "Fold Change" = step2()$foldChange,
            "Normalized" = step2()$normalized,
-           "Outliers" = step1()$outliers,
+           "Errors" = step1()$errors,
            "Raw Quantities" = step1()$qty)
   })
   
@@ -134,7 +137,7 @@ shinyServer(function(input, output, session) {
       write.csv(switch(input$outfile,
                        "Fold Change" = step2()$foldChange,
                        "Normalized" = step2()$normalized,
-                       "Outliers" = step1()$outliers,
+                       "Errors" = step1()$errors,
                        "Raw Quantities" = step1()$qty),
                 con)
     }
