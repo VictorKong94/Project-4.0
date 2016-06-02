@@ -2,7 +2,7 @@ library(shiny)
 library(shinythemes)
 
 shinyUI(fluidPage(
-  theme = shinytheme("cosmo"),
+  theme = shinytheme("cerulean"),
   titlePanel("Project 4.0"),
   sidebarLayout(
     sidebarPanel(
@@ -73,7 +73,11 @@ shinyUI(fluidPage(
         
         # Download Button -> Download Processed Data
         downloadButton(outputId = "downloadData",
-                       label = "Download")
+                       label = "Download"),
+        
+        # Download All -> Download All Processed Data
+        downloadButton(outputId = "downloadAll",
+                       label = "Download All")
       )
       
     ),

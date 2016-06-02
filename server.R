@@ -182,11 +182,31 @@ shinyServer(function(input, output, session) {
     },
     content = function(con) {
       write.csv(switch(input$outfile,
+                       "Errors" = step1()$errors,
                        "Fold Change" = step2()$foldChange,
                        "Normalized" = step2()$normalized,
-                       "Errors" = step1()$errors,
                        "Raw Quantities" = step1()$qty),
                 con)
+    }
+  )
+  
+  output$downloadAll = downloadHandler(
+    filename = function() {
+      name = paste0(strsplit(input$datafile$name, ".txt")[[1]], ".zip")
+    },
+    content = function(con) {
+      name = strsplit(input$datafile$name, ".txt")[[1]]
+      files = paste(name, c("(Errors).csv",
+                            "(Fold Change).csv",
+                            "(Normalized).csv",
+                            "(Raw Quantities).csv"))
+      tmpdir = tempdir()
+      setwd(tempdir())
+      write.csv(step1()$errors, files[1])
+      write.csv(step2()$foldChange, files[2])
+      write.csv(step2()$normalized, files[3])
+      write.csv(step1()$qty, files[4])
+      zip(zipfile = con, files = files)
     }
   )
   
