@@ -15,26 +15,6 @@ shinyUI(fluidPage(
       conditionalPanel(
         condition = "output.fileUploaded",
         
-        # Select Input -> Select Housekeeping Gene
-        selectInput(inputId = "housekeepingGene",
-                    label = "Select Housekeeping Gene",
-                    choices = "CLPTM"),
-        
-        # Radio Buttons -> Quantification Method
-        radioButtons(inputId = "method",
-                     label = "Select Quantification Method",
-                     choices = c("Absolute (Standard Curve)" = "absolute",
-                                 "Relative (ΔΔCt)" = "relative")),
-        
-        # Select Input -> Select Control Condition
-        conditionalPanel(
-          condition = "input.method == 'relative'",
-          selectInput(inputId = "control",
-                      label = "Select Control Condition",
-                      choices = "Control")
-        ),
-        
-        # Horizontal Bar Separator
         tags$hr(),
         
         # Header for Optional Section
@@ -57,6 +37,28 @@ shinyUI(fluidPage(
           condition = "input.sortByReplicates == true",
           textInput(inputId = "repIndicator",
                     label = NULL)
+        ),
+        
+        # Horizontal Bar Separator
+        tags$hr(),
+        
+        # Select Input -> Select Housekeeping Gene
+        selectInput(inputId = "housekeepingGene",
+                    label = "Select Housekeeping Gene",
+                    choices = "CLPTM"),
+        
+        # Radio Buttons -> Quantification Method
+        radioButtons(inputId = "method",
+                     label = "Select Quantification Method",
+                     choices = c("Absolute (Standard Curve)" = "absolute",
+                                 "Relative (ΔΔCt)" = "relative")),
+        
+        # Select Input -> Select Control Condition
+        conditionalPanel(
+          condition = "input.method == 'relative'",
+          selectInput(inputId = "control",
+                      label = "Select Control Condition",
+                      choices = "Control")
         ),
         
         # Horizontal Bar Separator
