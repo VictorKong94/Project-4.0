@@ -1,22 +1,38 @@
 library(shiny)
+library(shinythemes)
 
 shinyUI(fluidPage(
+  theme = shinytheme("cosmo"),
   titlePanel("Project 4.0"),
   sidebarLayout(
     sidebarPanel(
-      paste("Bandwidth is limited. Please close this",
-            "tab when you're finished. Thanks!"),
-      tags$hr(),
       
       # Upload -> SDS Output File
-      fileInput("datafile", "Select SDS Output File", accept = ".txt"),
+      fileInput(inputId = "datafile",
+                label = "Select SDS Output File",
+                accept = ".txt"),
       
       conditionalPanel(
         condition = "output.fileUploaded",
         
-        # Radio Buttons -> Select Housekeeping Gene
-        radioButtons("housekeepingGene", "Select Housekeeping Gene",
+        # Select Input -> Select Housekeeping Gene
+        selectInput(inputId = "housekeepingGene",
+                    label = "Select Housekeeping Gene",
                     choices = "CLPTM"),
+        
+        # Radio Buttons -> Quantification Method
+        radioButtons(inputId = "method",
+                     label = "Select Quantification Method",
+                     choices = c("Absolute (Standard Curve)" = "absolute",
+                                 "Relative (ΔΔCt)" = "relative")),
+        
+        # Select Input -> Select Control Condition
+        conditionalPanel(
+          condition = "input.method == 'relative'",
+          selectInput(inputId = "control",
+                      label = "Select Control Condition",
+                      choices = "Control")
+        ),
         
         # Horizontal Bar Separator
         tags$hr(),
@@ -25,37 +41,46 @@ shinyUI(fluidPage(
         tags$b("Optional (beta)"),
         
         # Upload -> qPCR Template File
-        checkboxInput("submitTemplate", "Submit qPCR Template File"),
+        checkboxInput(inputId = "submitTemplate",
+                      label = "Submit qPCR Template File"),
         conditionalPanel(
           condition = "input.submitTemplate == true",
-          fileInput("template", NULL, accept = ".csv")
+          fileInput(inputId = "template",
+                    label = NULL,
+                    accept = ".csv")
         ),
         
         # Text Input -> Sort by Replicates
-        checkboxInput("sortByReplicates", "Enter String to Sort by Replicates"),
+        checkboxInput(inputId = "sortByReplicates",
+                      label = "Enter String to Sort by Replicates"),
         conditionalPanel(
           condition = "input.sortByReplicates == true",
-          textInput("repIndicator", NULL)
+          textInput(inputId = "repIndicator",
+                    label = NULL)
         ),
         
         # Horizontal Bar Separator
         tags$hr(),
         
         # Select Menu -> Desired Output
-        selectInput("outfile", "Select Data Output",
-                    choices = c("Errors", "Fold Change", "Normalized",
+        selectInput(input = "outfile",
+                    label = "Select Data Output",
+                    choices = c("Errors",
+                                "Fold Change",
+                                "Normalized",
                                 "Raw Quantities"),
                     selected = "Raw Quantities"),
         
         # Download Button -> Download Processed Data
-        downloadButton("downloadData", "Download")
+        downloadButton(outputId = "downloadData",
+                       label = "Download")
       )
       
     ),
     mainPanel(
       conditionalPanel(
         condition = "output.fileUploaded",
-        tableOutput("table")
+        tableOutput(outputId = "table")
       )
     )
   )

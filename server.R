@@ -15,10 +15,10 @@ shinyServer(function(input, output, session) {
     rawData = readLines(infile)
     skip = grep("^Position", rawData) - 1
     colClass = rep("NULL", count.fields(infile, sep = "\t", skip = skip)[1])
-    colClass[unlist(strsplit(rawData[skip + 1], "\t")) %in%
-      c("Position", "Flag", "Sample", "Detector", "Task", "Ct", "Ct.median",
-        "Quantity", "Qty mean", "Qty stddev")] = NA
-    df = read.delim(infile, row.names = 1, skip = skip, colClasses = colClass)
+    colClass[unlist(strsplit(rawData[skip + 1], "\t")) %in% c(
+      "Position", "Flag", "Sample", "Detector", "Task", "Ct", "Quantity")] = NA
+    df = read.delim(infile, row.names = 1, skip = skip, colClasses = colClass,
+                    na.strings = c(NA, "", "Undetermined"))
     df$X = NULL
     
     # Replace sample names with data from pertinent qPCR template file
@@ -34,39 +34,42 @@ shinyServer(function(input, output, session) {
     }
     
     # Clean imported data
-    df = df[!(df$Task %in% c("", "NTC", "Standard")),
+    df = df[!(df$Task %in% c(NA, "NTC", "Standard")),
             names(df) %in% setdiff(names(df), "Task")]
     df$Detector = factor(df$Detector)
     df$Sample = factor(df$Sample)
+    
+    # Define variable of interest according to quantification method
+    if (input$method == "absolute") df$X = df$Quantity else df$X = df$Ct
     
     # Identify errors, including:
     # - samples with Grubb's Outlier Score >= 1.15,
     # - missing data,
     # - samples flagged by SDS software
-    df$Outlier.score = abs(df$Quantity - df$Qty.mean) / df$Qty.stddev
-    errors = df[df$Flag != "Passed" | df$Outlier.score >= 1.15 |
-                  is.na(df$Quantity),]
+    df$Outlier.score = 0
+    for (target in levels(df$Detector)) {
+      for (sample in levels(df$Sample)) {
+        i = df$Detector == target & df$Sample == sample
+        df$Outlier.score[i] = abs((df$X[i] - mean(df$X[i])) / sd(df$X[i]))
+      }
+    }
+    errors = df[df$Flag != "Passed" | df$Outlier.score >= 1.15 | is.na(df$X),]
     df = df[setdiff(rownames(df), rownames(errors)),]
     errors$Reason = paste("Grubb's Outlier Score =", errors$Outlier.score)
     errors$Reason[errors$Flag == "Flagged"] = "Flagged by SDS"
-    errors$Reason[is.na(errors$Quantity)] = "Missing data"
-    errors$Flag = NULL
-    errors$Outlier.Score = NULL
+    errors$Reason[is.na(errors$X)] = "Missing data"
+    errors = errors[, setdiff(colnames(errors), c("X", "Outlier.score"))]
     
-    # Compute means of remaining observations
+    # Compute means 
     means = data.frame("Target" = factor(levels = levels(df$Detector)),
                        "Sample" = factor(levels = levels(df$Sample)),
                        "Mean" = numeric())
     for (target in levels(df$Detector)) {
       for (sample in levels(df$Sample)) {
-        means[nrow(means) + 1,] = c(target, sample,
-                                    mean(df$Quantity[df$Detector == target &
-                                                       df$Sample == sample]))
+        i = df$Detector == target & df$Sample == sample
+        means[nrow(means) + 1,] = c(target, sample, mean(df$X[i]))
       }
     }
-    
-    # Extract names of target genes
-    genes = lapply(levels(df$Detector), sprintf)
     
     # Organize processed data into matrix
     if (input$sortByReplicates == T & input$repIndicator != "") {
@@ -94,31 +97,75 @@ shinyServer(function(input, output, session) {
                    dimnames = list(levels(df$Sample), levels(df$Detector)))
     }
     
-    # Define list of useful processed data sets
-    return(list("genes" = genes, "errors" = errors, "qty" = qty))
+    # Extract names of treatment conditions
+    conditions = lapply(rownames(qty), sprintf)
+    
+    # Extract names of target genes
+    genes = lapply(levels(df$Detector), sprintf)
+    
+    # Define set of raw quantity data
+    return(list("conditions" = conditions,
+                "errors" = errors,
+                "genes" = genes,
+                "qty" = qty))
     
   })
   
   observe({
-    updateRadioButtons(session, "housekeepingGene", choices = step1()$genes)
-  })
+    
+    # Update radio buttons for selection of housekeeping gene
+    updateSelectInput(session,
+                      inputId = "housekeepingGene",
+                      choices = step1()$genes)
+    
+    # Update radio buttons for selection of control condition
+    updateSelectInput(session,
+                      inputId = "control",
+                      choices = step1()$conditions)
   
-  step2 = reactive({
-    
-    hkGene = input$housekeepingGene
-    foldChange = step1()$qty / step1()$qty[, hkGene]
-    normalFactor = step1()$qty[, hkGene] / mean(step1()$qty[, hkGene])
-    normalized = step1()$qty * normalFactor
-    
-    # Define list of useful processed data sets
-    return(list("foldChange" = foldChange, "normalized" = normalized))
-    
-  })  
+  })
   
   output$fileUploaded = reactive({
     return(!is.null(input$datafile))
   })
   outputOptions(output, "fileUploaded", suspendWhenHidden = F)
+  
+  step2 = reactive({
+    
+    qty = step1()$qty
+    cntlCond = input$control
+    hkGene = input$housekeepingGene
+    if (input$sortByReplicates == T) {
+      hkGene = qty[, seq(which(colnames(qty) == hkGene), by = 1,
+                         length.out = nrow(colnames(qty)))]
+      hkGeneSet = matrix(rep(hkGene, ncol(colnames(qty))),
+                         nrow = nrow(colnames(qty)))
+      if (input$method == "absolute") {
+        foldChange = qty / hkGeneSet
+        normalFactor = hkGeneSet / mean(hkGene)
+        normalized = qty * normalFactor
+      } else {
+        normalized = qty - hkGeneSet
+        normalized = apply(normalized, 2, function(x) x - x[cntlCond])
+        foldChange = 2^(-normalized)
+      }
+    } else {
+      if (input$method == "absolute") {
+        foldChange = qty / qty[, hkGene]
+        normalFactor = qty[, hkGene] / mean(qty[, hkGene])
+        normalized = qty * normalFactor
+      } else {
+        normalized = t(apply(qty, 1, function(x) x - x[hkGene]))
+        normalized = apply(normalized, 2, function(x) x - x[cntlCond])
+        foldChange = 2^(-normalized)
+      }
+    }
+    
+    # Define list of useful processed data sets
+    return(list("foldChange" = foldChange,
+                "normalized" = normalized))
+    
+  })  
   
   output$table = renderTable({
     switch(input$outfile,
