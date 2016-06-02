@@ -15,15 +15,15 @@ of each treatment, check `Enter String to Sort by Replicates` and enter the
 string used in sample names to indicate they are replicates (see guidelines
 below for sort by replicates). Select your housekeeping gene and the
 quantification algorithm you want to use. If choosing
-`Relative($\delta \delta$Ct)`, select your control treatment. Change the
+`Relative ($\delta \delta$Ct)`, select your control treatment. Change the
 selection under `Select Data Output`
 
-### qPCR Plate Template
+#### qPCR Plate Template
 This application automatically assumes three replicates per sample on a 384-well
 plate, and therefore requires any plate template to have 16 rows or less as well
 as 8 columns or less. Include only sample names, without headers, row names,
 etc. Save templates as "Comma-separated Values(*.csv)" files.
 
-### Sort by Replicates
+#### Sort by Replicates
 
 --------------------------------------------------------------------------------
