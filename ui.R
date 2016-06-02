@@ -42,7 +42,7 @@ shinyUI(fluidPage(
         
         # Upload -> qPCR Template File
         checkboxInput(inputId = "submitTemplate",
-                      label = "Submit qPCR Template File"),
+                      label = "Submit qPCR Plate Template"),
         conditionalPanel(
           condition = "input.submitTemplate == true",
           fileInput(inputId = "template",

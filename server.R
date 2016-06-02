@@ -30,6 +30,7 @@ shinyServer(function(input, output, session) {
       sampleNames[I] = template[I]
       sampleNames = rep(as.vector(t(sampleNames)), each = 3)
       names(sampleNames) = paste0(rep(LETTERS[1:16], each = 24), 1:24)
+      sampleNames[is.na(sampleNames)] = names(sampleNames[is.na(sampleNames)])
       df$Sample = sampleNames[rownames(df)]
     }
     
