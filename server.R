@@ -22,7 +22,7 @@ shinyServer(function(input, output, session) {
     df$X = NULL
     
     # Replace sample names with data from pertinent qPCR template file
-    if (input$submitTemplate == T & !is.null(input$template)) {
+    if (input$submitTemplate & !is.null(input$template)) {
       sampleNames = matrix(NA, ncol = 8, nrow = 16)
       template = read.csv(input$template$datapath, header = F, na.strings = "")
       I = as.matrix(expand.grid(as.numeric(rownames(template)),
@@ -72,7 +72,7 @@ shinyServer(function(input, output, session) {
     }
     
     # Organize processed data into matrix
-    if (input$sortByReplicates == T & input$repIndicator != "") {
+    if (input$sortByReplicates & input$repIndicator != "") {
       means$Sample = sapply(strsplit(levels(means$Sample),
                                      trimws(input$repIndicator)),
                             function(x) trimws(x[1]))
@@ -135,8 +135,8 @@ shinyServer(function(input, output, session) {
     qty = step1()$qty
     cntlCond = input$control
     hkGene = input$housekeepingGene
-    if (input$sortByReplicates == T) {
-      hkGene = qty[, seq(which(colnames(qty) == hkGene), by = 1,
+    if (input$sortByReplicates) {
+      hkGene = qty[, seq(which(colnames(colnames(qty)) == hkGene), by = 1,
                          length.out = nrow(colnames(qty)))]
       hkGeneSet = matrix(rep(hkGene, ncol(colnames(qty))),
                          nrow = nrow(colnames(qty)))
