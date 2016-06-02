@@ -139,7 +139,7 @@ shinyServer(function(input, output, session) {
       hkGene = qty[, seq(which(colnames(colnames(qty)) == hkGene), by = 1,
                          length.out = nrow(colnames(qty)))]
       hkGeneSet = matrix(rep(hkGene, ncol(colnames(qty))),
-                         nrow = nrow(colnames(qty)))
+                         nrow = nrow(qty))
       if (input$method == "absolute") {
         foldChange = qty / hkGeneSet
         normalFactor = hkGeneSet / mean(hkGene)
