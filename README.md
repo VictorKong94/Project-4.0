@@ -21,7 +21,7 @@ your control treatment. Change the selection under `Select Data Output`
 This application automatically assumes three replicates per sample on a 384-well
 plate, and therefore requires any plate template to have 16 rows or less as well
 as 8 columns or less. Include only sample names, without headers, row names,
-etc. Save templates as "Comma-separated Values(*.csv)" files.
+etc. Save templates as "Comma-separated Values (*.csv)" files.
 
 #### Sort by Replicates
 
