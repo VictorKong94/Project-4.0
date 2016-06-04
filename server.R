@@ -144,7 +144,7 @@ shinyServer(function(input, output, session) {
       if (input$method == "absolute") {
         foldChange = qty / hkGeneSet
         normalFactor = hkGeneSet / mean(hkGene)
-        normalized = qty * normalFactor
+        normalized = qty / normalFactor
       } else {
         normalized = qty - hkGeneSet
         normalized = apply(normalized, 2, function(x) x - x[cntlCond])
@@ -154,7 +154,7 @@ shinyServer(function(input, output, session) {
       if (input$method == "absolute") {
         foldChange = qty / qty[, hkGene]
         normalFactor = qty[, hkGene] / mean(qty[, hkGene])
-        normalized = qty * normalFactor
+        normalized = qty / normalFactor
       } else {
         normalized = t(apply(qty, 1, function(x) x - x[hkGene]))
         normalized = apply(normalized, 2, function(x) x - x[cntlCond])
