@@ -54,10 +54,20 @@ shinyServer(function(input, output, session) {
         df$Outlier.score[i] = abs((df$X[i] - mean(df$X[i])) / sd(df$X[i]))
       }
     }
-    errors = df[df$Flag != "Passed" | df$Outlier.score >= 1.15 | is.na(df$X),]
+    if (input$rmFlag) rmFlag = "Passed" else rmFlag = c("Passed", "Flagged")
+    if (input$rmOutliers) {
+      outCutoff = input$outCutoff
+    } else {
+      outCutoff = max(df$Outlier.score) + 1
+    }
+    errors = df[!(df$Flag %in% rmFlag) |
+                  !(df$Outlier.score < outCutoff) |
+                  is.na(df$X),]
     df = df[setdiff(rownames(df), rownames(errors)),]
-    errors$Reason = paste("Grubb's Outlier Score =", errors$Outlier.score)
-    errors$Reason[errors$Flag == "Flagged"] = "Flagged by SDS"
+    if (nrow(errors) != 0) {
+      errors$Reason = paste("Grubb's Outlier Score =", errors$Outlier.score)
+    }
+    if (input$rmFlag) errors$Reason[errors$Flag == "Flagged"] = "Flagged by SDS"
     errors$Reason[is.na(errors$X)] = "Missing data"
     errors = errors[, setdiff(colnames(errors), c("X", "Outlier.score"))]
     

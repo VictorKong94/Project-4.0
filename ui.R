@@ -20,6 +20,22 @@ shinyUI(fluidPage(
         # Header for Optional Section
         tags$b("Optional (beta)"),
         
+        # Checkbox -> Remove Samples Flagged by SDS
+        checkboxInput(inputId = "rmFlag",
+                      label = "Remove Samples Flagged by SDS",
+                      value = T),
+        
+        # Numeric Input -> Grubb's Outlier Score Cutoff
+        checkboxInput(inputId = "rmOutliers",
+                      label = "Remove Outliers",
+                      value = T),
+        conditionalPanel(
+          condition = "input.rmOutliers == true",
+          numericInput(inputId = "outCutoff",
+                       label = "Grubb's Outlier Score Cutoff",
+                       value = 1.15)
+        ),
+        
         # Upload -> qPCR Template File
         checkboxInput(inputId = "submitTemplate",
                       label = "Submit qPCR Plate Template"),
