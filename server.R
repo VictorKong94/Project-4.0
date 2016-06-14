@@ -58,7 +58,7 @@ shinyServer(function(input, output, session) {
     if (input$rmOutliers) {
       outCutoff = input$outCutoff
     } else {
-      outCutoff = max(df$Outlier.score) + 1
+      outCutoff = max(df$Outlier.score, na.rm = T) + 1
     }
     errors = df[!(df$Flag %in% rmFlag) |
                   !(df$Outlier.score < outCutoff) |
