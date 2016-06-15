@@ -52,7 +52,9 @@ shinyUI(fluidPage(
         conditionalPanel(
           condition = "input.sortByReplicates == true",
           textInput(inputId = "repIndicator",
-                    label = NULL)
+                    label = NULL),
+          checkboxInput(inputId = "poolControls",
+                        label = "Pool ΔCt (Control)")
         ),
         
         # Horizontal Bar Separator

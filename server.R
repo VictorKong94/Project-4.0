@@ -1,5 +1,5 @@
 library(shiny)
-
+# add option to pool controls
 shinyServer(function(input, output, session) {
   
   step1 = reactive({
@@ -143,20 +143,24 @@ shinyServer(function(input, output, session) {
   
   step2 = reactive({
     
+    genes = step1()$genes
     qty = step1()$qty
     cntlCond = input$control
     hkGene = input$housekeepingGene
     if (input$sortByReplicates) {
       hkGene = qty[, seq(which(colnames(colnames(qty)) == hkGene), by = 1,
                          length.out = nrow(colnames(qty)))]
-      hkGeneSet = matrix(rep(hkGene, ncol(colnames(qty))),
-                         nrow = nrow(qty))
+      hkGeneSet = matrix(rep(hkGene, length(genes)), nrow = nrow(qty))
       if (input$method == "absolute") {
         foldChange = qty / hkGeneSet
         normalFactor = hkGeneSet / mean(hkGene)
         normalized = qty / normalFactor
       } else {
         normalized = qty - hkGeneSet
+        if (input$poolControls) {
+          normalized[cntlCond,] = mean(normalized[cntlCond,]) * length(genes)
+          normalized[cntlCond, 1:nrow(colnames(qty))] = 0
+        }
         normalized = apply(normalized, 2, function(x) x - x[cntlCond])
         foldChange = 2^(-normalized)
       }
