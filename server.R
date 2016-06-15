@@ -158,8 +158,11 @@ shinyServer(function(input, output, session) {
       } else {
         normalized = qty - hkGeneSet
         if (input$poolControls) {
-          normalized[cntlCond,] = mean(normalized[cntlCond,]) * length(genes)
-          normalized[cntlCond, 1:nrow(colnames(qty))] = 0
+          for (gene in genes) {
+            cols = seq(which(colnames(qty) == gene),
+                       which(colnames(qty) == gene) + nrow(colnames(qty)) - 1)
+            normalized[cntlCond, cols] = mean(normalized[cntlCond, cols])
+          }
         }
         normalized = apply(normalized, 2, function(x) x - x[cntlCond])
         foldChange = 2^(-normalized)
