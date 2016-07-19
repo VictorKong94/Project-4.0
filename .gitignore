@@ -1,5 +1,7 @@
-# Data files
+# Personal files
+ddct/
 testData/
+UPDATE.txt
 
 # History files
 .DS_Store
