@@ -3,7 +3,7 @@ library(shinythemes)
 
 shinyUI(fluidPage(
   theme = shinytheme("cerulean"),
-  titlePanel("Project 4.0"),
+  titlePanel("Project 4.0 (beta)"),
   sidebarLayout(
     sidebarPanel(
       
@@ -15,26 +15,33 @@ shinyUI(fluidPage(
       conditionalPanel(
         condition = "output.fileUploaded",
         
+        # Horizontal Bar Separator
+        tags$hr(),
+        
+        # Radio Buttons -> Quantification Method
+        radioButtons(inputId = "method",
+                     label = "Select Quantification Method",
+                     choices = c("Absolute (Standard Curve)" = "absolute",
+                                 "Relative (ΔΔCt)" = "relative")),
+        
+        # Select Input -> Select Housekeeping Gene
+        selectInput(inputId = "housekeepingGene",
+                    label = "Select Housekeeping Gene",
+                    choices = "CLPTM"),
+        
+        # Select Input -> Select Control Condition
+        conditionalPanel(
+          condition = "input.method == 'relative'",
+          selectInput(inputId = "control",
+                      label = "Select Control Condition",
+                      choices = "Control")
+        ),
+        
+        # Horizontal Bar Separator
         tags$hr(),
         
         # Header for Optional Section
-        tags$b("Optional (beta)"),
-        
-        # Checkbox -> Remove Samples Flagged by SDS
-        checkboxInput(inputId = "rmFlag",
-                      label = "Remove Samples Flagged by SDS",
-                      value = T),
-        
-        # Numeric Input -> Grubb's Outlier Score Cutoff
-        checkboxInput(inputId = "rmOutliers",
-                      label = "Remove Outliers",
-                      value = T),
-        conditionalPanel(
-          condition = "input.rmOutliers == true",
-          numericInput(inputId = "outCutoff",
-                       label = "Grubb's Outlier Score Cutoff",
-                       value = 1.15)
-        ),
+        tags$b("Options"),
         
         # Upload -> qPCR Template File
         checkboxInput(inputId = "submitTemplate",
@@ -52,31 +59,23 @@ shinyUI(fluidPage(
         conditionalPanel(
           condition = "input.sortByReplicates == true",
           textInput(inputId = "repIndicator",
-                    label = NULL),
-          checkboxInput(inputId = "poolControls",
-                        label = "Pool ΔCt (Control)")
+                    label = NULL)
         ),
         
-        # Horizontal Bar Separator
-        tags$hr(),
+        # Checkbox -> Remove Samples Flagged by SDS
+        checkboxInput(inputId = "rmFlag",
+                      label = "Remove Samples Flagged by SDS",
+                      value = T),
         
-        # Select Input -> Select Housekeeping Gene
-        selectInput(inputId = "housekeepingGene",
-                    label = "Select Housekeeping Gene",
-                    choices = "CLPTM"),
-        
-        # Radio Buttons -> Quantification Method
-        radioButtons(inputId = "method",
-                     label = "Select Quantification Method",
-                     choices = c("Absolute (Standard Curve)" = "absolute",
-                                 "Relative (ΔΔCt)" = "relative")),
-        
-        # Select Input -> Select Control Condition
+        # Numeric Input -> Grubb's Outlier Score Cutoff
+        checkboxInput(inputId = "rmOutliers",
+                      label = "Remove Outliers",
+                      value = T),
         conditionalPanel(
-          condition = "input.method == 'relative'",
-          selectInput(inputId = "control",
-                      label = "Select Control Condition",
-                      choices = "Control")
+          condition = "input.rmOutliers == true",
+          numericInput(inputId = "outCutoff",
+                       label = "Grubb's Outlier Score Cutoff",
+                       value = 1.15)
         ),
         
         # Horizontal Bar Separator
