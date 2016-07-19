@@ -1,5 +1,5 @@
 library(shiny)
-# add option to pool controls
+
 shinyServer(function(input, output, session) {
   
   step1 = reactive({
@@ -148,30 +148,35 @@ shinyServer(function(input, output, session) {
     cntlCond = input$control
     hkGene = input$housekeepingGene
     if (input$sortByReplicates) {
-      hkGene = qty[, seq(which(colnames(colnames(qty)) == hkGene), by = 1,
-                         length.out = nrow(colnames(qty)))]
+      hkGeneCols = seq(which(colnames(colnames(qty)) == hkGene), by = 1,
+                       length.out = nrow(colnames(qty)))
+      hkGene = qty[, hkGeneCols]
       hkGeneSet = matrix(rep(hkGene, length(genes)), nrow = nrow(qty))
       if (input$method == "absolute") {
         foldChange = qty / hkGeneSet
+        foldChange = t(apply(foldChange, 1, function(x)
+          x / foldChange[cntlCond,]))
         normalFactor = hkGeneSet / mean(hkGene)
+        normalFactor[, hkGeneCols] = 1
         normalized = qty / normalFactor
       } else {
         normalized = qty - hkGeneSet
-        if (input$poolControls) {
-          for (gene in genes) {
+        for (gene in genes) {
             cols = seq(which(colnames(qty) == gene),
                        which(colnames(qty) == gene) + nrow(colnames(qty)) - 1)
-            normalized[cntlCond, cols] = mean(normalized[cntlCond, cols])
-          }
+            normalized[, cols] =
+              normalized[, cols] - mean(normalized[cntlCond, cols])
         }
-        normalized = apply(normalized, 2, function(x) x - x[cntlCond])
         foldChange = 2^(-normalized)
       }
     } else {
       if (input$method == "absolute") {
         foldChange = qty / qty[, hkGene]
+        foldChange = t(apply(foldChange, 1, function(x)
+          x / foldChange[cntlCond,]))
         normalFactor = qty[, hkGene] / mean(qty[, hkGene])
         normalized = qty / normalFactor
+        normalized[, hkGene] = qty[, hkGene]
       } else {
         normalized = t(apply(qty, 1, function(x) x - x[hkGene]))
         normalized = apply(normalized, 2, function(x) x - x[cntlCond])
