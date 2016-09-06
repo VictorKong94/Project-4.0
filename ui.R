@@ -7,35 +7,13 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       
-      # Upload -> SDS Output File
+      # Upload -> SDS Export File
       fileInput(inputId = "datafile",
-                label = "Select SDS Output File",
+                label = "Select SDS Export File",
                 accept = ".txt"),
       
       conditionalPanel(
         condition = "output.fileUploaded",
-        
-        # Horizontal Bar Separator
-        tags$hr(),
-        
-        # Radio Buttons -> Quantification Method
-        radioButtons(inputId = "method",
-                     label = "Select Quantification Method",
-                     choices = c("Absolute (Standard Curve)" = "absolute",
-                                 "Relative (ΔΔCt)" = "relative")),
-        
-        # Select Input -> Select Housekeeping Gene
-        selectInput(inputId = "housekeepingGene",
-                    label = "Select Housekeeping Gene",
-                    choices = "CLPTM"),
-        
-        # Select Input -> Select Control Condition
-        conditionalPanel(
-          condition = "input.method == 'relative'",
-          selectInput(inputId = "control",
-                      label = "Select Control Condition",
-                      choices = "Control")
-        ),
         
         # Horizontal Bar Separator
         tags$hr(),
@@ -53,14 +31,14 @@ shinyUI(fluidPage(
                     accept = ".csv")
         ),
         
-        # Text Input -> Sort by Replicates
-        checkboxInput(inputId = "sortByReplicates",
-                      label = "Enter String to Sort by Replicates"),
-        conditionalPanel(
-          condition = "input.sortByReplicates == true",
-          textInput(inputId = "repIndicator",
-                    label = NULL)
-        ),
+        # # Text Input -> Sort by Replicates
+        # checkboxInput(inputId = "sortByReplicates",
+        #               label = "Enter String to Sort by Replicates"),
+        # conditionalPanel(
+        #   condition = "input.sortByReplicates == true",
+        #   textInput(inputId = "repIndicator",
+        #             label = NULL)
+        # ),
         
         # Checkbox -> Remove Samples Flagged by SDS
         checkboxInput(inputId = "rmFlag",
@@ -76,6 +54,29 @@ shinyUI(fluidPage(
           numericInput(inputId = "outCutoff",
                        label = "Grubb's Outlier Score Cutoff",
                        value = 1.15)
+        ),
+        
+        # Horizontal Bar Separator
+        tags$hr(),
+        
+        # Radio Buttons -> Quantification Method
+        radioButtons(inputId = "method",
+                     label = "Select Quantification Method",
+                     choices = c("Absolute (Standard Curve)" = "absolute",
+                                 "Relative (ΔΔCt)" = "relative")),
+        
+        # Select Input -> Select Housekeeping Gene
+        checkboxGroupInput(inputId = "housekeepingGenes",
+                           label = "Select Housekeeping Gene(s)",
+                           choices = "CLPTM",
+                           selected = "CLPTM"),
+        
+        # Select Input -> Select Control Condition
+        conditionalPanel(
+          condition = "input.method == 'relative'",
+          checkboxGroupInput(inputId = "control",
+                             label = "Select Control Condition(s)",
+                             choices = "Control")
         ),
         
         # Horizontal Bar Separator
