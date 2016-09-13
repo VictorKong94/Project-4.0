@@ -31,15 +31,6 @@ shinyUI(fluidPage(
                     accept = ".csv")
         ),
         
-        # # Text Input -> Sort by Replicates
-        # checkboxInput(inputId = "sortByReplicates",
-        #               label = "Enter String to Sort by Replicates"),
-        # conditionalPanel(
-        #   condition = "input.sortByReplicates == true",
-        #   textInput(inputId = "repIndicator",
-        #             label = NULL)
-        # ),
-        
         # Checkbox -> Remove Samples Flagged by SDS
         checkboxInput(inputId = "rmFlag",
                       label = "Remove Samples Flagged by SDS",
@@ -65,13 +56,13 @@ shinyUI(fluidPage(
                      choices = c("Absolute (Standard Curve)" = "absolute",
                                  "Relative (ΔΔCt)" = "relative")),
         
-        # Select Input -> Select Housekeeping Gene
+        # Checkbox Group Input -> Select Housekeeping Gene
         checkboxGroupInput(inputId = "housekeepingGenes",
                            label = "Select Housekeeping Gene(s)",
                            choices = "CLPTM",
                            selected = "CLPTM"),
         
-        # Select Input -> Select Control Condition
+        # Checkbox Group Input -> Select Control Condition
         conditionalPanel(
           condition = "input.method == 'relative'",
           checkboxGroupInput(inputId = "control",

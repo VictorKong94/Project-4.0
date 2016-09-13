@@ -84,29 +84,7 @@ shinyServer(function(input, output, session) {
       }
     }
     
-    # Organize processed data into matrix
-    # if (input$sortByReplicates & input$repIndicator != "") {
-    #   means$Sample = sapply(strsplit(levels(means$Sample),
-    #                                  trimws(input$repIndicator)),
-    #                         function(x) trimws(x[1]))
-    #   Txs = sapply(unique(means$Target),
-    #                function(x) table(means$Sample[means$Target == x]))
-    #   reps = max(Txs)
-    #   qty = matrix(0, nrow = nrow(Txs), ncol = ncol(Txs) * reps,
-    #                dimnames = list(rownames(Txs),
-    #                                sapply(levels(means$Target), function(x)
-    #                                  c(x, rep("", reps - 1)))))
-    #   for (target in levels(means$Target)) {
-    #     for (Tx in rownames(Txs)) {
-    #       cols = seq(which(target == colnames(qty)),
-    #                  which(target == colnames(qty)) + reps - 1)
-    #       qty[Tx, cols] = as.numeric(means$Mean[means$Target == target &
-    #                                               means$Sample == Tx])
-    #     }
-    #   }
-    #   qty[qty == 0] = NA
-    # } else {
-      qty = matrix(as.numeric(means$Mean), nrow = nlevels(means$Sample),
+    qty = matrix(as.numeric(means$Mean), nrow = nlevels(means$Sample),
                    dimnames = list(levels(df$Sample), levels(df$Detector)))
     # }
     
@@ -168,7 +146,7 @@ shinyServer(function(input, output, session) {
       normalized = matrix(paste("Please select at least 1 and at most",
                                 length(genes) - 1, "housekeeping gene(s)."))
       foldChange = normalized
-    } else if (!input$sortByReplicates & input$method == "absolute") {
+    } else if (input$method == "absolute") {
       hkCols = which(colnames(qty) %in% hkGenes)
       nf = apply(as.matrix(qty[, hkCols]), 1, geometricMean)
       nf = nf / mean(nf)
@@ -176,50 +154,16 @@ shinyServer(function(input, output, session) {
       normalized = qty
       normalized[, nonHkCols] = qty[, nonHkCols] / nf
       foldChange = normalized
-    # } else if (input$sortByReplicates & input$method == "absolute") {
-    #   hkCols = (which(colnames(qty) %in% hkGenes) - 1) * nrow(qty) + 1
-    #   nf = matrix(nrow = nrow(qty), ncol = nrow(colnames(qty)))
-    #   for (col in 1:ncol(nf)) {
-    #     nf[, col] = apply(qty[, hkCols + col - 1], 1, geometricMean)
-    #   }
-    #   nf = nf / mean(nf)
-    #   nonHkCols = setdiff(
-    #     seq(1, by = ncol(nf), length.out = ncol(colnames(qty))), hkCols)
-    #   normalized = qty
-    #   for (col in nonHkCols) {
-    #     normalized[, col:(col + ncol(nf) - 1)] =
-    #       qty[, col:(col + ncol(nf) - 1)] / nf
-    #   }
-    #   foldChange = normalized
-    } else if (!input$sortByReplicates & input$method == "relative") {
-      hkCols = which(colnames(qty) %in% hkGenes)
+    } else if (input$method == "relative") {
+      hkCols = 1#which(colnames(qty) %in% hkGenes)
       gMeanHkGenes = apply(as.matrix(qty[, hkCols]), 1, geometricMean)
-      qty = cbind(qty, gMeanHkGenes)
+      qty = cbind(qty[,1:4], gMeanHkGenes)
       normalized = t(apply(qty, 1, function(x) x - x["gMeanHkGenes"]))
-      normalized = rbind(normalized, "controlCondition" =
-                           apply(normalized, 2, function(x) mean(x[cntlCond])))
+      controlCondition = apply(normalized, 2, function(x) mean(x[cntlCond]))
+      normalized = rbind(normalized, controlCondition)
       normalized = apply(normalized, 2, function(x) x - x["controlCondition"])
+      normalized[abs(normalized) < 0.0000001] = 0
       foldChange = 2^(-normalized)
-    # } else if (input$sortByReplicates & input$method == "relative") {
-    #   hkCols = which(colnames(qty) %in% hkGenes)
-    #   reps = nrow(colnames(qty))
-    #   hkCt = matrix(nrow = nrow(qty), ncol = reps)
-    #   for (col in 1:ncol(hkCt)) {
-    #     hkCt[, col] = apply(as.matrix(qty[, hkCols + col - 1]),
-    #                         1, geometricMean)
-    #   }
-    #   qty = cbind(qty, hkCt)
-    #   colnames(qty)[length(genes) * reps + 1] = "gMeanHkGenes"
-    #   normalized = rbind(qty, "controlCondition" = 
-    #                      apply(normalized, 2, function(x) mean(x[cntlCond])))
-    #   for (gene in 1:(length(genes) + 1)) {
-    #     set = seq((gene - 1) * ncol(hkCt) + 1, by = 1, length.out = ncol(hkCt))
-    #     normalized[, set] = normalized[, set] -
-    #       normalized[, (ncol(normalized) - reps + 1):ncol(normalized)]
-    #     normalized[, set] = normalized[, set] -
-    #       mean(normalized["controlCondition", set])
-    #   }
-    #   foldChange = 2^(-normalized)
     }
 
     # Define list of useful processed data sets
