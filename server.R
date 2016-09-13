@@ -86,7 +86,6 @@ shinyServer(function(input, output, session) {
     
     qty = matrix(as.numeric(means$Mean), nrow = nlevels(means$Sample),
                    dimnames = list(levels(df$Sample), levels(df$Detector)))
-    # }
     
     # Set up choices for output shown
     if (input$method == "absolute") {
@@ -155,9 +154,9 @@ shinyServer(function(input, output, session) {
       normalized[, nonHkCols] = qty[, nonHkCols] / nf
       foldChange = normalized
     } else if (input$method == "relative") {
-      hkCols = 1#which(colnames(qty) %in% hkGenes)
+      hkCols = which(colnames(qty) %in% hkGenes)
       gMeanHkGenes = apply(as.matrix(qty[, hkCols]), 1, geometricMean)
-      qty = cbind(qty[,1:4], gMeanHkGenes)
+      qty = cbind(qty, gMeanHkGenes)
       normalized = t(apply(qty, 1, function(x) x - x["gMeanHkGenes"]))
       controlCondition = apply(normalized, 2, function(x) mean(x[cntlCond]))
       normalized = rbind(normalized, controlCondition)
