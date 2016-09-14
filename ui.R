@@ -3,7 +3,7 @@ library(shinythemes)
 
 shinyUI(fluidPage(
   theme = shinytheme("cerulean"),
-  titlePanel("Project 5.0 (beta)"),
+  titlePanel("Project 5.0"),
   sidebarLayout(
     sidebarPanel(
       
