@@ -31,6 +31,15 @@ shinyUI(fluidPage(
                     accept = ".csv")
         ),
         
+        # Text Input -> String to Subset Data
+        checkboxInput(inputId = "subsetData",
+                      label = "Enter String to Subset Data"),
+        conditionalPanel(
+          condition = "input.subsetData == true",
+          textInput(inputId = "subsetString",
+                    label = NULL)
+        ),
+        
         # Checkbox -> Remove Samples Flagged by SDS
         checkboxInput(inputId = "rmFlag",
                       label = "Remove Samples Flagged by SDS",

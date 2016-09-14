@@ -36,6 +36,12 @@ shinyServer(function(input, output, session) {
       df$Sample = sampleNames[rownames(df)]
     }
     
+    # Extract a subset of the data according to user preferences
+    if (input$subsetData & !is.null(input$subsetString)) {
+      subsetData = grep(input$subsetString, df$Sample)
+      if (length(subsetData) > 0) df = df[subsetData,]
+    }
+    
     # Clean imported data
     df = df[!(df$Task %in% c(NA, "NTC", "Standard")),
             names(df) %in% setdiff(names(df), "Task")]
