@@ -95,9 +95,9 @@ shinyServer(function(input, output, session) {
     
     # Set up choices for output shown
     if (input$method == "absolute") {
-      choices = c("Errors", "Normalized", "Raw Quantities")
+      choices = c("Errors", "Normalized Quantities", "Raw Quantities")
     } else if (input$method == "relative") {
-      choices = c("Errors", "Fold Change", "Normalized", "Raw Quantities")
+      choices = c("ΔΔCt Values", "Errors", "Fold Changes", "Raw Ct Values")
     }
     
     # Extract names of treatment conditions
@@ -106,11 +106,20 @@ shinyServer(function(input, output, session) {
     # Extract names of target genes
     genes = levels(df$Detector)
     
+    # Initialize name to save output file as
+    if (input$subsetData & !is.null(input$subsetString)) {
+      name = paste0(strsplit(input$datafile$name, ".txt")[[1]],
+                    " -- ", input$subsetString)
+    } else {
+      name = paste0(strsplit(input$datafile$name, ".txt")[[1]])
+    }
+    
     # Define set of raw quantity data
     return(list("choices" = choices,
                 "conditions" = conditions,
                 "errors" = errors,
                 "genes" = genes,
+                "name" = name,
                 "qty" = qty))
     
   })
@@ -132,7 +141,9 @@ shinyServer(function(input, output, session) {
     updateSelectInput(session,
                       inputId = "outfile",
                       choices = step1()$choices,
-                      selected = "Raw Quantities")
+                      selected = switch(input$method,
+                                        "absolute" = "Raw Quantities",
+                                        "relative" = "Raw Ct Values"))
   
   })
   
@@ -179,37 +190,35 @@ shinyServer(function(input, output, session) {
   
   output$table = renderTable({
     switch(input$outfile,
-           "Fold Change" = step2()$foldChange,
-           "Normalized" = step2()$normalized,
+           "ΔΔCt Values" = step2()$normalized,
            "Errors" = step1()$errors,
+           "Fold Changes" = step2()$foldChange,
+           "Normalized Quantities" = step2()$normalized,
+           "Raw Ct Values" = step1()$qty,
            "Raw Quantities" = step1()$qty)
   })
   
   output$downloadData = downloadHandler(
-    filename = function() {
-      name = strsplit(input$datafile$name, ".txt")[[1]]
-      paste0(name, " (", input$outfile, ").csv")
-    },
+    filename = function(con) paste0(step1()$name, " (", input$outfile, ").csv"),
     content = function(con) {
       write.csv(switch(input$outfile,
+                       "ΔΔCt Values" = step2()$normalized,
                        "Errors" = step1()$errors,
-                       "Fold Change" = step2()$foldChange,
-                       "Normalized" = step2()$normalized,
+                       "Fold Changes" = step2()$foldChange,
+                       "Normalized Quantities" = step2()$normalized,
+                       "Raw Ct Values" = step1()$qty,
                        "Raw Quantities" = step1()$qty),
                 con)
     }
   )
   
   output$downloadAll = downloadHandler(
-    filename = function() {
-      name = paste0(strsplit(input$datafile$name, ".txt")[[1]], ".zip")
-    },
+    filename = function(con) paste0(step1()$name, ".zip"),
     content = function(con) {
       if (input$method == "absolute") {
-        name = strsplit(input$datafile$name, ".txt")[[1]]
-        files = paste(name, c("(Errors).csv",
-                              "(Normalized).csv",
-                              "(Raw Quantities).csv"))
+        files = paste(step1()$name, c("(Errors).csv",
+                                      "(Normalized Quantities).csv",
+                                      "(Raw Quantities).csv"))
         tmpdir = tempdir()
         setwd(tempdir())
         write.csv(step1()$errors, files[1])
@@ -217,11 +226,10 @@ shinyServer(function(input, output, session) {
         write.csv(step1()$qty, files[3])
         zip(zipfile = con, files = files)
       } else if (input$method == "relative") {
-        name = strsplit(input$datafile$name, ".txt")[[1]]
-        files = paste(name, c("(Errors).csv",
-                              "(Fold Change).csv",
-                              "(Normalized).csv",
-                              "(Raw Quantities).csv"))
+        files = paste(step1()$name, c("(Errors).csv",
+                                      "(Fold Changes).csv",
+                                      "(ΔΔCt Values).csv",
+                                      "(Raw Ct Values).csv"))
         tmpdir = tempdir()
         setwd(tempdir())
         write.csv(step1()$errors, files[1])
