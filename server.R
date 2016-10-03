@@ -79,16 +79,26 @@ shinyServer(function(input, output, session) {
     errors$Reason[is.na(errors$X)] = "Missing data"
     errors = errors[, setdiff(colnames(errors), c("X", "Outlier.score"))]
     
-    # Compute means 
-    means = data.frame("Target" = factor(levels = levels(df$Detector)),
-                       "Sample" = factor(levels = levels(df$Sample)),
-                       "Mean" = numeric())
-    for (target in levels(df$Detector)) {
-      for (sample in levels(df$Sample)) {
-        i = df$Detector == target & df$Sample == sample
-        means[nrow(means) + 1,] = c(target, sample, mean(df$X[i]))
-      }
-    }
+    # Compute means (runtime = 0.051)
+    # means = data.frame("Target" = factor(levels = levels(df$Detector)),
+    #                    "Sample" = factor(levels = levels(df$Sample)),
+    #                    "Mean" = numeric())
+    # for (target in levels(df$Detector)) {
+    #   for (sample in levels(df$Sample)) {
+    #     i = df$Detector == target & df$Sample == sample
+    #     means[nrow(means) + 1,] = c(target, sample, mean(df$X[i]))
+    #   }
+    # }
+    
+    # Compute means (runtime = 0.013)
+    means = t(mapply(function(x, y)
+      c(x, y, mean(df$X[df$Detector == x & df$Sample == y])),
+      rep(levels(df$Detector), each = nlevels(df$Sample)),
+      rep(levels(df$Sample), times = nlevels(df$Detector))
+    ))
+    means = data.frame("Target" = as.factor(means[, 1]),
+                       "Sample" = as.factor(means[, 2]),
+                       "Mean" = as.numeric(means[, 3]))
     
     qty = matrix(as.numeric(means$Mean), nrow = nlevels(means$Sample),
                    dimnames = list(levels(df$Sample), levels(df$Detector)))
