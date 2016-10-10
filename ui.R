@@ -1,7 +1,7 @@
 library(shiny)
 library(shinythemes)
 
-shinyUI(fluidPage(
+fluidPage(
   theme = shinytheme("cerulean"),
   titlePanel("Project 5.0"),
   sidebarLayout(
@@ -108,4 +108,4 @@ shinyUI(fluidPage(
       )
     )
   )
-))
+)
