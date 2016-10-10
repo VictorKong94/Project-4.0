@@ -2,7 +2,7 @@ library(shiny)
 
 source("helpers.R")
 
-shinyServer(function(input, output, session) {
+function(input, output, session) {
   
   step1 = reactive({
     
@@ -240,5 +240,4 @@ shinyServer(function(input, output, session) {
     }
   )
   
-})
-
+}
