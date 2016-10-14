@@ -81,7 +81,7 @@ function(input, output, session) {
     
     # Compute means
     means = t(mapply(function(x, y)
-      c(x, y, mean(df$X[df$Detector == x & df$Sample == y])),
+      c(x, y, mean(df$X[df$Detector == x & df$Sample == y], na.rm = T)),
       rep(levels(df$Detector), each = nlevels(df$Sample)),
       rep(levels(df$Sample), times = nlevels(df$Detector))
     ))
@@ -164,7 +164,7 @@ function(input, output, session) {
     } else if (input$method == "absolute") {
       hkCols = which(colnames(qty) %in% hkGenes)
       nf = apply(as.matrix(qty[, hkCols]), 1, geometricMean)
-      nf = nf / mean(nf)
+      nf = nf / mean(nf, na.rm = T)
       nonHkCols = setdiff(seq(1, ncol(qty)), hkCols)
       normalized = qty
       normalized[, nonHkCols] = qty[, nonHkCols] / nf
@@ -174,7 +174,8 @@ function(input, output, session) {
       gMeanHkGenes = apply(as.matrix(qty[, hkCols]), 1, geometricMean)
       qty = cbind(qty, gMeanHkGenes)
       normalized = t(apply(qty, 1, function(x) x - x["gMeanHkGenes"]))
-      controlCondition = apply(normalized, 2, function(x) mean(x[cntlCond]))
+      controlCondition = apply(normalized, 2, function(x)
+        mean(x[cntlCond], na.rm = T))
       normalized = rbind(normalized, controlCondition)
       normalized = apply(normalized, 2, function(x) x - x["controlCondition"])
       normalized[abs(normalized) < 0.0000001] = 0
