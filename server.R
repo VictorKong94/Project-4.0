@@ -106,11 +106,12 @@ function(input, output, session) {
     genes = levels(df$Detector)
     
     # Initialize name to save output file as
+    if (grepl("export", input$datafile$name)) splt = "export" else splt = ".txt"
     if (input$subsetData & !is.null(input$subsetString)) {
-      name = paste0(strsplit(input$datafile$name, ".txt")[[1]],
+      name = paste0(trimws(strsplit(input$datafile$name, splt)[[1]][1]),
                     " -- ", input$subsetString)
     } else {
-      name = paste0(strsplit(input$datafile$name, ".txt")[[1]])
+      name = paste0(trimws(strsplit(input$datafile$name, splt)[[1]][1]))
     }
     
     # Define set of raw quantity data
