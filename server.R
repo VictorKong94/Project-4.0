@@ -132,10 +132,12 @@ function(input, output, session) {
                              choices = step1()$genes,
                              selected = step1()$genes[1])
     
-    # Update checkbox group input for selection of control condition
-    updateCheckboxGroupInput(session,
-                             inputId = "control",
-                             choices = step1()$conditions)
+    # Update selectize input for selection of control condition
+    updateSelectizeInput(session,
+                         inputId = "control",
+                         label = "Select Control Condition(s)",
+                         choices = step1()$conditions,
+                         server = TRUE)
     
     # Update select input for selection of desired output
     updateSelectInput(session,
@@ -169,7 +171,7 @@ function(input, output, session) {
       nonHkCols = setdiff(seq(1, ncol(qty)), hkCols)
       normalized = qty
       normalized[, nonHkCols] = qty[, nonHkCols] / nf
-      foldChange = normalized
+      foldChange = data.frame()
     } else if (input$method == "relative") {
       hkCols = which(colnames(qty) %in% hkGenes)
       gMeanHkGenes = apply(as.matrix(qty[, hkCols]), 1, geometricMean)
@@ -180,6 +182,11 @@ function(input, output, session) {
       normalized = rbind(normalized, controlCondition)
       normalized = apply(normalized, 2, function(x) x - x["controlCondition"])
       normalized[abs(normalized) < 0.0000001] = 0
+      if (length(hkGenes) == 1) {
+        hkMean = geometricMean(qty[, hkCols])
+        hkCol = qty[, hkCols] - hkMean
+        normalized[, hkCols] = c(hkCol, 0)
+      }
       foldChange = 2^(-normalized)
     }
 

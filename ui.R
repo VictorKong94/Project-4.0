@@ -65,18 +65,19 @@ fluidPage(
                      choices = c("Absolute (Standard Curve)" = "absolute",
                                  "Relative (ΔΔCt)" = "relative")),
         
-        # Checkbox Group Input -> Select Housekeeping Gene
+        # Checkbox Group Input -> Select Housekeeping Gene(s)
         checkboxGroupInput(inputId = "housekeepingGenes",
                            label = "Select Housekeeping Gene(s)",
                            choices = "CLPTM",
                            selected = "CLPTM"),
         
-        # Checkbox Group Input -> Select Control Condition
+        # Selectize Input -> Select Control Condition(s)
         conditionalPanel(
           condition = "input.method == 'relative'",
-          checkboxGroupInput(inputId = "control",
-                             label = "Select Control Condition(s)",
-                             choices = "Control")
+          selectizeInput(inputId = "control",
+                         label = "Select Control Condition(s)",
+                         choices = NULL,
+                         multiple = TRUE)
         ),
         
         # Horizontal Bar Separator
