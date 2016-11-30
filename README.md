@@ -22,3 +22,11 @@ This application automatically assumes three replicates per sample on a 384-well
 plate, and therefore requires any plate template to have 16 rows or less as well
 as 8 columns or less. Include only sample names, without headers, row names,
 etc. Save templates as "Comma-separated Values (*.csv)" files.
+
+#### Special Case of Relative Quantification With a Single Housekeeping Gene
+As requested by my lab group, I have modified the column for a lone housekeeping
+gene to contain a pseudo-ΔΔCt and a pseudo-fold change for the purpose of
+estimating error between samples. Note that these values are defined differently
+from others in the table.
+
+circumstances.
