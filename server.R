@@ -90,7 +90,7 @@ function(input, output, session) {
                        "Mean" = as.numeric(means[, 3]))
     
     qty = matrix(as.numeric(means$Mean), nrow = nlevels(means$Sample),
-                   dimnames = list(levels(df$Sample), levels(df$Detector)))
+                 dimnames = list(levels(df$Sample), levels(df$Detector)))
     
     # Set up choices for output shown
     if (input$method == "absolute") {
@@ -146,7 +146,7 @@ function(input, output, session) {
                       selected = switch(input$method,
                                         "absolute" = "Raw Quantities",
                                         "relative" = "Raw Ct Values"))
-  
+    
   })
   
   output$fileUploaded = reactive({
@@ -189,7 +189,7 @@ function(input, output, session) {
       }
       foldChange = 2^(-normalized)
     }
-
+    
     # Define list of useful processed data sets
     return(list("foldChange" = foldChange,
                 "normalized" = normalized))
@@ -204,7 +204,7 @@ function(input, output, session) {
            "Normalized Quantities" = step2()$normalized,
            "Raw Ct Values" = step1()$qty,
            "Raw Quantities" = step1()$qty)
-  })
+  }, include.rownames = T)
   
   output$downloadData = downloadHandler(
     filename = function(con) paste0(step1()$name, " (", input$outfile, ").csv"),
