@@ -28,5 +28,3 @@ As requested by my lab group, I have modified the column for a lone housekeeping
 gene to contain a pseudo-ΔΔCt and a pseudo-fold change for the purpose of
 estimating error between samples. Note that these values are defined differently
 from others in the table.
-
-circumstances.
