@@ -1,3 +1,4 @@
+library(ggplot2)
 library(shiny)
 
 source("helpers.R")
@@ -94,9 +95,14 @@ function(input, output, session) {
     
     # Set up choices for output shown
     if (input$method == "absolute") {
-      choices = c("Errors", "Normalized Quantities", "Raw Quantities")
+      choices = c("Errors",
+                  "Normalized Quantities",
+                  "Raw Quantities")
     } else if (input$method == "relative") {
-      choices = c("ΔΔCt Values", "Errors", "Fold Changes", "Raw Ct Values")
+      choices = c("ΔΔCt Values",
+                  "Errors",
+                  "Fold Changes",
+                  "Raw Ct Values")
     }
     
     # Extract names of treatment conditions
@@ -146,9 +152,9 @@ function(input, output, session) {
                       selected = switch(input$method,
                                         "absolute" = "Raw Quantities",
                                         "relative" = "Raw Ct Values"))
-    
+
   })
-  
+
   output$fileUploaded = reactive({
     return(!is.null(input$datafile))
   })
@@ -158,7 +164,7 @@ function(input, output, session) {
     
     genes = step1()$genes
     qty = step1()$qty
-    cntlCond = input$control
+    ctrlCond = input$control
     hkGenes = input$housekeepingGenes
     if (length(hkGenes) == 0 | length(hkGenes) == length(genes)) {
       normalized = matrix(paste("Please select at least 1 and at most",
@@ -178,7 +184,7 @@ function(input, output, session) {
       qty = cbind(qty, gMeanHkGenes)
       normalized = t(apply(qty, 1, function(x) x - x["gMeanHkGenes"]))
       controlCondition = apply(normalized, 2, function(x)
-        mean(x[cntlCond], na.rm = T))
+        mean(x[ctrlCond], na.rm = T))
       normalized = rbind(normalized, controlCondition)
       normalized = apply(normalized, 2, function(x) x - x["controlCondition"])
       normalized[abs(normalized) < 0.0000001] = 0
@@ -194,9 +200,73 @@ function(input, output, session) {
     return(list("foldChange" = foldChange,
                 "normalized" = normalized))
     
-  })  
+  })
   
-  output$table = renderTable({
+  output$selectTreatments = renderUI({
+    nTreatments = as.integer(input$nTreatments)
+    lapply(1:(2 * nTreatments), function(i) {
+      if (i %% 2 == 1) {
+        j = ceiling(i / 2)
+        textInput(inputId = paste0("trt", j, "name"),
+                  label = paste("Enter Name for Treatment", j),
+                  value = paste("Treatment", j))
+      } else {
+        j = i / 2
+        selectizeInput(inputId = paste0("trt", j),
+                       label = paste("Select Treatment", j, "Condition(s)"),
+                       choices = step1()$conditions,
+                       multiple = TRUE)
+      }
+    })
+  })
+
+  step3 = reactive({
+
+    # Generate data to produce bar graph of results
+    ctrlCond = input$control
+    if (input$method == "absolute") {
+      df = step2()$normalized
+      var = "Quantity"
+    } else {
+      df = step2()$foldChange
+      var = "Fold Change"
+    }
+    myData = data.frame("signal" = as.vector(df[ctrlCond, -ncol(df)]),
+                        "condition" = "Control",
+                        "detector" = rep(colnames(df)[-ncol(df)],
+                                         each = length(ctrlCond)))
+    for (i in 1:input$nTreatments) {
+      treatments = input[[paste0("trt", i)]]
+      myData = rbind(myData,
+                     data.frame("signal" = as.vector(df[treatments, -ncol(df)]),
+                                "condition" = input[[paste0("trt", i, "name")]],
+                                "detector" = rep(colnames(df)[-ncol(df)],
+                                                 each = length(treatments))))
+    }
+    plotData = aggregate(myData$signal,
+                         by = list("condition" = myData$condition,
+                                   "detector" = myData$detector),
+                         FUN = function(x) c(mean = mean(x), sd = sd(x),
+                                             n = length(x)))
+    plotData = do.call(data.frame, plotData)
+    plotData$se = plotData$x.sd / sqrt(plotData$x.n)
+    colnames(plotData) = c("condition", "detector", "mean", "sd", "n", "se")
+    dodge = position_dodge(width = 0.9)
+    limits = aes(ymax = plotData$mean + plotData$se,
+                 ymin = plotData$mean - plotData$se)
+    p = ggplot(data = plotData, aes(x = factor(condition), y = mean,
+                                    fill = factor(detector))) +
+      geom_bar(stat = "identity",
+               position = position_dodge(0.9)) +
+      geom_errorbar(limits, position = position_dodge(0.9),
+                    width = 0.25) +
+      labs(x = "Condition", y = var) +
+      scale_fill_discrete(name = "Detector")
+    return(p)
+    
+  })
+  
+  output$tableDisplay = renderTable({
     switch(input$outfile,
            "ΔΔCt Values" = step2()$normalized,
            "Errors" = step1()$errors,
@@ -205,6 +275,10 @@ function(input, output, session) {
            "Raw Ct Values" = step1()$qty,
            "Raw Quantities" = step1()$qty)
   }, include.rownames = T)
+  
+  output$plotDisplay = renderPlot({
+    print(step3())
+  })
   
   output$downloadData = downloadHandler(
     filename = function(con) paste0(step1()$name, " (", input$outfile, ").csv"),
@@ -220,6 +294,11 @@ function(input, output, session) {
     }
   )
   
+  output$downloadPlot = downloadHandler(
+    filename = function(con) paste(step1()$name, "(Plot).pdf"),
+    content = function(con) ggsave(con, step3())
+  )
+  
   output$downloadAll = downloadHandler(
     filename = function(con) paste0(step1()$name, ".zip"),
     content = function(con) {
@@ -231,19 +310,22 @@ function(input, output, session) {
         setwd(tempdir())
         write.csv(step1()$errors, files[1])
         write.csv(step2()$normalized, files[2])
-        write.csv(step1()$qty, files[3])
+        ggsave(files[3], step3())
+        write.csv(step1()$qty, files[4])
         zip(zipfile = con, files = files)
-      } else if (input$method == "relative") {
+      } else {
         files = paste(step1()$name, c("(Errors).csv",
                                       "(Fold Changes).csv",
                                       "(ΔΔCt Values).csv",
+                                      "(Plot).pdf",
                                       "(Raw Ct Values).csv"))
         tmpdir = tempdir()
         setwd(tempdir())
         write.csv(step1()$errors, files[1])
         write.csv(step2()$foldChange, files[2])
         write.csv(step2()$normalized, files[3])
-        write.csv(step1()$qty, files[4])
+        ggsave(files[4], step3())
+        write.csv(step1()$qty, files[5])
         zip(zipfile = con, files = files)
       }
     }

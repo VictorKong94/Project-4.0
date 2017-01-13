@@ -3,6 +3,9 @@ library(shinythemes)
 
 fluidPage(
   theme = shinytheme("cerulean"),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "stylesheet.css")
+  ),
   titlePanel("Project 5.0"),
   sidebarLayout(
     sidebarPanel(
@@ -72,14 +75,20 @@ fluidPage(
                            selected = "CLPTM"),
         
         # Selectize Input -> Select Control Condition(s)
-        conditionalPanel(
-          condition = "input.method == 'relative'",
-          selectizeInput(inputId = "control",
+        selectizeInput(inputId = "control",
                          label = "Select Control Condition(s)",
                          choices = NULL,
-                         multiple = TRUE)
-        ),
-        
+                         multiple = TRUE),
+
+        # Numeric Input -> Number of Treatment Condition(s)
+        numericInput(inputId = "nTreatments",
+                     label = "Number of Treatment Condition(s)",
+                     value = 1,
+                     min = 1),
+
+        # Selectize Input(s) -> Select Treatment Condition(s)
+        uiOutput(outputId = "selectTreatments"),
+
         # Horizontal Bar Separator
         tags$hr(),
         
@@ -94,19 +103,28 @@ fluidPage(
         
         # Download Button -> Download Processed Data
         downloadButton(outputId = "downloadData",
-                       label = "Download"),
+                       label = "Data",
+                       class = "top-left"),
+        
+        # Download Button -> Download Plot
+        downloadButton(outputId = "downloadPlot",
+                       label = "Plot",
+                       class = "top-right"),
+        
+        # Line Break
+        tags$br(),
         
         # Download All -> Download All Processed Data
         downloadButton(outputId = "downloadAll",
-                       label = "Download All")
+                       label = "All Output",
+                       class = "bottom")
       )
       
     ),
     mainPanel(
-      conditionalPanel(
-        condition = "output.fileUploaded",
-        tableOutput(outputId = "table")
-      )
+      tabsetPanel(type = "tabs",
+                  tabPanel("Data", tableOutput(outputId = "tableDisplay")),
+                  tabPanel("Plot", plotOutput(outputId = "plotDisplay")))
     )
   )
 )
